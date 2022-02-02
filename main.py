@@ -9,12 +9,12 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait as WDW
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import Select
 
 # Python default import.
 from time import sleep
 from glob import glob
-import os
-
+import os, time
 
 """Colorama module constants."""
 init(convert=True)  # Init colorama module.
@@ -148,7 +148,7 @@ class Opensea(object):
         self.recovery_phrase = recovery_phrase
         self.password = password  # Get new password.
         # Used files path.
-        self.webdriver_path = 'assets/chromedriver.exe'
+        self.webdriver_path = 'assets/chromedriver'
         self.metamask_extension_path = 'assets/MetaMask.crx'
         self.driver = self.webdriver()  # Start new webdriver.
         # Opensea URLs.
@@ -251,6 +251,7 @@ class Opensea(object):
         print(f'{green}Logged to Metamask extension.{reset}')
 
     def opensea_login(self) -> None:
+        time.sleep(10)
         """Login to Opensea using Metamask."""
         print('Login to Opensea.', end=' ')
         self.driver.switch_to.window(self.driver.window_handles[1]) \
@@ -270,19 +271,20 @@ class Opensea(object):
                 self.element_clickable('//*[@id="__next"]/div[1]/main/div/div'
                                        f'/div/div[2]/ul/li[{li}]/button')
                 break
+        time.sleep(120)
         # Switch on MetaMask popup tab.
-        self.driver.switch_to.window(self.driver.window_handles[2]) \
-            if self.window_handles(2) else self.retry_login(0)
-        # Click on "Next" button.
-        self.element_clickable('//*[@id="app-content"]/div/div[3]/div/'
-                               'div[2]/div[4]/div[2]/button[2]')
-        # Click on "Connect" button.
-        self.element_clickable('//*[@id="app-content"]/div/div[3]/div/'
-                               'div[2]/div[2]/div[2]/footer/button[2]')
-        self.metamask_sign()
+        # self.driver.switch_to.window(self.driver.window_handles[2]) \
+        #     if self.window_handles(2) else self.retry_login(0)
+        # # Click on "Next" button.
+        # self.element_clickable('//*[@id="app-content"]/div/div[3]/div/'
+        #                        'div[2]/div[4]/div[2]/button[2]')
+        # # Click on "Connect" button.
+        # self.element_clickable('//*[@id="app-content"]/div/div[3]/div/'
+        #                        'div[2]/div[2]/div[2]/footer/button[2]')
+        # self.metamask_sign()
         # Reload page and retry to log in to Opensea if failed.
         try:
-            WDW(self.driver, 10).until(EC.url_to_be(self.create_url))
+            WDW(self.driver, 100).until(EC.url_to_be(self.create_url))
             print(f'{green}Logged to Opensea.{reset}\n')
         except TE:
             self.retry_login()
@@ -311,7 +313,7 @@ class Opensea(object):
     def opensea_upload(self, number: int) -> None:
         """Upload multiple NFTs automatically on Opensea."""
         try:
-            print(f'Uploading {settings.nft_name}/{len(settings.file)}.',
+            print(f' {settings.nft_name}/{len(settings.file)}.',
                   end=' ')
             # Go to Opensea login URL.
             self.driver.get(self.create_url + '?enable_supply=true')
@@ -334,9 +336,30 @@ class Opensea(object):
                     '//*[@id="description"]', settings.description)
             # Input collection and select it.
             if settings.collection != '':
-                self.element_send_keys(
-                    '//*[@id="__next"]/div[1]/main/div/div/section/div/form/'
-                    'div[5]/div/div[2]/input', settings.collection)
+                # WDW(self.driver, 5).until(EC.visibility_of_element_located(
+                #     (By.XPATH, '//*[@id="__next"]/div[1]/main/div/div/section/div/form/'
+                # #                'div[5]/div/div[2]/input'))).clear()
+                # time.sleep(5)
+                # self.element_send_keys(
+                #     '//*[@id="__next"]/div[1]/main/div/div/section/div/form/'
+                #     'div[5]/div/div[2]/input', u'\ue009' + u'\ue003')
+                ele = self.driver.find_element(By.XPATH,
+                                               '//*[@id="__next"]/div[1]/main/div/div/section/div/form/'
+                                               'div[5]/div/div[2]/input')
+                # ele.send_keys(settings.collection)
+                # ele.send_keys(Keys.CONTROL, "a", Keys.DELETE)
+                # time.sleep(5)
+                # ele.send_keys(Keys.CONTROL, 'a')
+                # ele.send_keys(Keys.BACKSPACE)
+                length = len(ele.get_attribute('value'))
+                ele.send_keys(length * Keys.BACKSPACE * 3)
+                ele.send_keys(settings.collection)
+                # select.select_by_visible_text("yangzi-10k")
+                # WDW(self.driver, 5).until(EC.visibility_of_element_located(
+                #     (By.ID, "collection"))).send_keys(keys)
+                # self.element_send_keys(
+                #     '//*[@id="__next"]/div[1]/main/div/div/section/div/form/'
+                #     'div[5]/div/div[2]/input', settings.collection)
                 try:
                     sleep(2)
                     self.element_clickable(
@@ -356,7 +379,7 @@ class Opensea(object):
                         '//*[@id="__next"]/div[1]/main/div/div/section/div/'
                         f'form/section/div[{index + 1}]/div/div[2]/button')
                     parameter = 0
-                    for element in parameters[index]:
+                    for ele in parameters[index]:
                         # If there are more than 1 element.
                         if parameter > 0:
                             # Click on "Add more" button.
@@ -367,19 +390,19 @@ class Opensea(object):
                         self.element_send_keys(
                             f'/html/body/div[{index + 2}]/div/div/div/section/'
                             f'table/tbody/tr[{parameter}]/td[1]/div/div/input',
-                            element[0])
-                        if len(element) == 3:
+                            ele[0])
+                        if len(ele) == 3:
                             actual_element = (
                                 f'/html/body/div[{index + 2}]/div/div/div/'
                                 f'section/table/tbody/tr[{parameter}]/td[3]'
                                 '/div/div/input')
                             self.clear_text(actual_element)
-                            self.element_send_keys(actual_element, element[2])
+                            self.element_send_keys(actual_element, ele[2])
                         actual_element = (
                             f'/html/body/div[{index + 2}]/div/div/div/section/'
                             f'table/tbody/tr[{parameter}]/td[2]/div/div/input')
                         self.clear_text(actual_element)
-                        self.element_send_keys(actual_element, element[1])
+                        self.element_send_keys(actual_element, ele[1])
                     # Click on "Save" button.
                     self.element_clickable(f'/html/body/div[{index + 2}]/div'
                                            '/div/div/footer/button')
@@ -416,29 +439,28 @@ class Opensea(object):
                         li += 1  # Add 1 to start li element at li[1].
                         # Check if span text contains Blockchain.
                         if self.element_visible(
-                            f'//*[@id="tippy-9"]/div/div/div/ul/li[{li}]'
-                            '/button/div[2]/span[1]').text \
+                                f'//*[@id="tippy-9"]/div/div/div/ul/li[{li}]'
+                                '/button/div[2]/span[1]').text \
                                 == settings.blockchain:
                             # Click on specific Blockchain button.
                             self.element_clickable('//*[@id="tippy-9"]/div/div'
                                                    f'/div/ul/li[{li}]/button')
                             break
-            sleep(2) 
-              # Set number of supply.
+            sleep(2)
+            # Set number of supply.
             if settings.supply != "" and type(settings.supply) == int:
                 if (
-                    "?enable_supply=true" in self.driver.current_url
-                    and settings.supply > 1
+                        "?enable_supply=true" in self.driver.current_url
+                        and settings.supply > 1
                 ):
                     # Set supply modifying value.
                     self.driver.execute_script(
                         f'arguments[0].value = "";',
                         self.element_visible('//*[@id="supply"]'))
                     self.element_send_keys(
-                    '//*[@id="supply"]', settings.supply)
-            sleep(2)      
+                        '//*[@id="supply"]', settings.supply)
+            sleep(2)
 
-            
             # Click on "Create" button.
             self.element_clickable('//*[@id="__next"]/div[1]/main/div/div/'
                                    'section/div/form/div/div[1]/span/button')
@@ -459,17 +481,17 @@ class Opensea(object):
             # Get sell page for the NFT.
             self.driver.get(self.driver.current_url + '/sell')
             if settings.supply > 1 and \
-                        settings.blockchain.lower() == 'polygon':
-                    # Input number of supplies to sell.
-                    if settings.quantity <= settings.supply:
-                        self.driver.execute_script(
-                            f'arguments[0].value = "";',
-                            self.element_visible('//*[@id="quantity"]'))
-                        self.element_send_keys(
-                            '//*[@id="quantity"]', str(settings.quantity))
-                    else:
-                        raise TE('Quantity must be less or equal to supply.')
-                        
+                    settings.blockchain.lower() == 'polygon':
+                # Input number of supplies to sell.
+                if settings.quantity <= settings.supply:
+                    self.driver.execute_script(
+                        f'arguments[0].value = "";',
+                        self.element_visible('//*[@id="quantity"]'))
+                    self.element_send_keys(
+                        '//*[@id="quantity"]', str(settings.quantity))
+                else:
+                    raise TE('Quantity must be less or equal to supply.')
+
             if settings.supply == 1 and \
                     settings.blockchain.lower() != 'polygon':
                 # Input Ethereum price.
@@ -486,12 +508,13 @@ class Opensea(object):
                 self.element_clickable('//button[@type="submit"]')
             except Exception:
                 raise TE('An error occured. Submit button can\'t be clicked')
-           
-             # Click on "Create" button.
-            self.element_clickable('//button[@class="Blockreact__Block-sc-1xf18x6-0 Buttonreact__StyledButton-sc-glfma3-0 bhqEJb fzwDgL"]')
 
-            WDW(webdriver, timeout=1)       
-            
+            # Click on "Create" button.
+            self.element_clickable(
+                '//button[@class="Blockreact__Block-sc-1xf18x6-0 Buttonreact__StyledButton-sc-glfma3-0 bhqEJb fzwDgL"]')
+
+            WDW(webdriver, timeout=1)
+
             # Sign Metamask 
             self.metamask_sign()
 
@@ -502,11 +525,12 @@ class Opensea(object):
             self.element_clickable('//button[@class="UnstyledButtonreact__UnstyledButton-sc-ty1bh0-0 btgkrL"]')
 
             WDW(webdriver, timeout=7)
-            
+
             print(f'{green}NFT put up for sale.{reset}')
         except TE as error:
             print(f'{red}NFT sale cancelled: {error}{reset}')
-      
+
+
 def cls() -> None:
     """Clear console function."""
     # Clear console for Windows using 'cls' and Linux & Mac using 'clear'.
@@ -575,7 +599,10 @@ if __name__ == '__main__':
     # Init Opensea class and send password and recovery phrase.
     opensea = Opensea(password, recovery_phrase)
     opensea.metamask()  # Connect to MetaMask.
-    opensea.opensea_login()  # Connect to Opensea.
+    # opensea.opensea_login()  # Connect to Opensea.
+    time.sleep(30)
+    # WDW(opensea.driver, 100).until(EC.url_to_be(opensea.create_url))
+    print(f'{green}Logged to Opensea.{reset}\n')
 
     # Upload each NFT one by one.
     for element in range(settings.len_file):
